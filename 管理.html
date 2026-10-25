@@ -1,0 +1,118 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>[sys-log] local_host_debug_service</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://w3.org viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+    <style>
+        /* システム全体：フォントサイズと余白を極大化 */
+        body { background-color: #0d0d0d; color: #a4a4a4; font-family: monospace; text-align: center; padding: 30px 15px; user-select: none; font-size: 18px; }
+        
+        /* メインコンソールを巨大化 */
+        .sys-container { border: 3px solid #333; display: inline-block; padding: 35px; border-radius: 8px; background-color: #121212; width: 100%; max-width: 600px; box-shadow: 0 0 30px rgba(0, 0, 0, 0.9); margin-bottom: 30px; text-align: left; box-sizing: border-box; }
+        h1.sys-title { font-size: 24px; color: #00ff66; margin-top: 0; border-bottom: 3px solid #333; padding-bottom: 15px; font-weight: bold; text-align: center; letter-spacing: 1px; }
+        
+        /* ボタン類を圧倒的サイズに拡大 */
+        button { font-family: monospace; font-size: 20px; font-weight: bold; padding: 18px 30px; color: #fff; border: 2px solid #545454; border-radius: 8px; cursor: pointer; margin: 15px 0; background-color: #1e1e1e; width: 100%; box-sizing: border-box; transition: all 0.2s ease-in-out; display: block; }
+        button:active { background-color: #444; transform: scale(0.98); }
+        
+        /* 役割に応じたカラーリング */
+        #start-btn { border-color: #00ff66; color: #00ff66; background-color: #001a07; }
+        #ejac-btn { border-color: #ff3333; color: #ff3333; font-size: 22px; display: none; background-color: #2a0000; box-shadow: 0 0 15px rgba(255,51,51,0.3); }
+        #nocturnal-btn { border-color: #00bcff; color: #00bcff; background-color: #001122; font-size: 18px; display: none; }
+        #activate-sys-btn { border-color: #00ff66; color: #00ff66; background-color: #001a07; }
+        #commit-log-btn { border-color: #00bcff; color: #00bcff; background-color: #001122; font-size: 20px; }
+        .secondary-btn { border-color: #666; color: #aaa; background-color: #111; font-size: 14px; padding: 10px; margin-top: 20px; }
+        
+        /* テレメトリ数値の強調巨大化 */
+        .info { font-size: 18px; margin: 16px 0; color: #b5b5b5; line-height: 1.6; }
+        .info span { color: #fff; font-weight: bold; }
+        .info-header { font-size: 14px; color: #666; display: block; margin-bottom: 2px; font-weight: bold; }
+        #bpm { font-size: 42px; color: #ff3333; font-weight: bold; letter-spacing: 2px; }
+        #timer { font-size: 48px; color: #00bcff; font-weight: bold; letter-spacing: 2px; }
+        #loop-count { font-size: 32px; color: #ffcc00; font-weight: bold; }
+        
+        /* アンケートフォーム用UI */
+        .survey-label { display: block; font-size: 15px; color: #ffcc00; margin: 18px 0 6px 0; font-weight: bold; border-left: 4px solid #ffcc00; padding-left: 8px; }
+        .survey-select, .survey-text { font-family: monospace; font-size: 16px; width: 100%; padding: 12px; background: #000; color: #00ff66; border: 1px solid #333; border-radius: 4px; box-sizing: border-box; margin-bottom: 10px; }
+        .survey-checkbox-label { display: flex; align-items: center; gap: 10px; font-size: 15px; color: #ddd; margin: 12px 0; cursor: pointer; }
+        .survey-checkbox-label input { width: 22px; height: 22px; cursor: pointer; }
+
+        /* パスワード連携保管庫ボックス */
+        #pwd-vault-box { background-color: #0a0a0a; border: 2px dashed #00bcff; padding: 15px; border-radius: 6px; margin-top: 20px; text-align: center; }
+        #pwd-display-status { font-size: 24px; font-weight: bold; letter-spacing: 1px; }
+
+        /* ビジュアル同期フラッシュ */
+        #visual-indicator-box { margin: 25px 0; display: none; text-align: center; }
+        #visual-signal { width: 55px; height: 50px; background-color: #222; border-radius: 6px; display: inline-block; border: 2px solid #444; transition: background-color 0.03s ease-out; }
+        
+        /* カメラ撮影連動型・ファイル入力ボタン */
+        .reg-input-large { font-size: 16px; color: #00ff66; margin: 12px 0; width: 100%; padding: 12px; background: #000; border: 2px dashed #333; border-radius: 6px; cursor: pointer; }
+        .camera-badge { font-size: 12px; color: #00bcff; background: #001122; padding: 2px 6px; border-radius: 4px; border: 1px solid #00bcff; display: inline-block; margin-bottom: 5px; font-weight: bold; }
+
+        /* 罰ゲームコンソール */
+        #result-box { display: none; margin-top: 35px; padding: 25px; border: 3px dashed #ff3333; background-color: #1a0000; border-radius: 8px; text-align: left; }
+        #result-box h2 { font-size: 22px; color: #ff3333; margin-top: 0; font-weight: bold; border-bottom: 2px solid #550000; padding-bottom: 10px; text-align: center; }
+        .penalty-item { margin: 16px 0; font-size: 18px; line-height: 1.5; color: #ddd; border-bottom: 1px dashed #2a0000; padding-bottom: 8px; }
+        .highlight { color: #ff3333; font-weight: bold; font-size: 20px; }
+        .rush-highlight { color: #ff00ff; font-weight: bold; font-size: 22px; }
+        #scorn-text { background-color: #000; border-left: 5px solid #ff3333; padding: 16px; margin: 20px 0; font-size: 18px; color: #ff99bb; line-height: 1.6; font-style: italic; }
+        
+        /* タスク署名キャンバス */
+        #punishment-task-zone { display: none; background:#0d0d0d; border: 2px double #ff3333; padding: 20px; margin-top: 25px; border-radius: 6px; }
+        .canvas-wrapper { width: 100%; margin: 20px 0; background: #050505; border: 2px dashed #ff3333; position: relative; border-radius: 8px; touch-action: none; }
+        #apology-canvas { width: 100%; height: 320px; display: block; background: #050505; cursor: crosshair; }
+        .canvas-controls { display: flex; justify-content: space-between; padding: 12px; background: #111; border-top: 1px solid #222; }
+        
+        /* 拇印スキャナーUI */
+        #thumbprint-zone { margin-top: 20px; background: #111; border: 2px solid #ff3333; padding: 20px; text-align: center; border-radius: 8px; }
+        #thumb-pad { width: 100px; height: 130px; background: #2a0000; border: 3px dashed #ff3333; border-radius: 50% 50% 45% 45%; display: inline-block; margin: 15px 0; cursor: pointer; position: relative; overflow: hidden; touch-action: none; transition: background 0.2s; box-shadow: inset 0 0 15px rgba(0,0,0,0.8); }
+        #thumb-pad:active { background: #550000; }
+        #thumb-laser { width: 100%; height: 6px; background: #00ff66; position: absolute; top: 0; left: 0; display: none; box-shadow: 0 0 12px #00ff66; }
+        @keyframes scanMotion { 0% { top: 0%; } 50% { top: 100%; } 100% { top: 0%; } }
+        
+        /* 統合ログ履歴エリア */
+        #log-area { margin-top: 25px; max-height: 600px; overflow-y: auto; background-color: #050505; padding: 15px; border-radius: 6px; border: 2px solid #222; }
+        .diary-card { background-color: #161616; border: 2px solid #262626; padding: 20px; margin-bottom: 20px; border-radius: 6px; display: flex; flex-direction: column; gap: 16px; box-shadow: inset 0 0 10px rgba(0,0,0,0.6); }
+        .diary-main { font-size: 15px; line-height: 1.6; text-align: left; }
+        .diary-date { color: #888; font-size: 13px; border-bottom: 1px solid #333; padding-bottom: 6px; margin-bottom: 8px; font-weight: bold; }
+        .diary-thumbs-wrapper { display: flex; gap: 10px; justify-content: space-between; background: #0b0b0b; padding: 12px; border-radius: 6px; }
+        .diary-thumb-box { text-align: center; flex: 1; }
+        .diary-thumb-box span { display: block; font-size: 11px; color: #999; margin-bottom: 6px; font-weight: bold; }
+        .diary-thumb { width: 100%; height: 130px; object-fit: cover; border: 2px solid #444; border-radius: 6px; cursor: pointer; background-color: #000; }
+        .diary-thumb:hover { border-color: #00bcff; }
+        
+        #diary-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 10000; }
+        #secret-status-signal { position: fixed; bottom: 5px; right: 8px; font-size: 12px; color: #222; font-family: monospace; z-index: 9999; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<div id="secret-status-signal">[sys.status: 1]</div>
+
+<!-- フルスクリーン画像拡大閲覧モーダル -->
+<div id="diary-modal" onclick="closeDiaryModal()">
+    <img id="diary-modal-img" src="" alt="Evidence Large" style="max-width: 95%; max-height: 90%; border: 3px solid #ff3333; border-radius: 6px; box-shadow: 0 0 25px #000;">
+</div>
+
+<!-- 非表示：ブレンド処理用隠しキャンバス -->
+<canvas id="hidden-blend-canvas" style="display:none;"></canvas>
+
+
+<!-- ==================== 【完全分離画面】ステップ式生体ベースライン ＆ StayFree連携パスワード登録 ==================== -->
+<div id="registration-overlay" class="sys-container" style="display: block; margin: 40px auto; border-color: #00ff66;">
+    <h2 id="reg-panel-title" style="font-size:18px; color:#00ff66; margin-top:0; border-bottom:2px solid #333; padding-bottom:10px; font-weight:bold; text-align:center;">💻 BIOMETRIC_REGISTRATION: STEP_1</h2>
+    
+    <!-- ステップ1: 通常時撮影登録 ＆ StayFree解除用PINの格納 -->
+    <div id="reg-step-1-zone" style="display: block;">
+        <p style="font-size:14px; color:#aaa; line-height:1.5; margin-bottom:20px;">プロトコルを開始します。現在の【通常時の基準状態】をその場でカメラ起動して撮影・登録し、さらに現在アプリ制限を設定している**【StayFreeのロック解除パスワード（PINコード）】**を入力して連動格納しなさい。</p>
+        
+        <div style="margin-bottom: 20px;">
+            <label class="info-header" style="color:#00ff66;">StayFreeロック解除用パスワード連携（PIN_CODE）</label>
+            <input type="password" id="reg-stayfree-pin" class="survey-text" style="color: #ff3333; text-align: center; font-size: 22px; letter-spacing: 5px;" placeholder="****" maxlength="8">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <span class="camera-badge">インカメラ強制起動モード（FACING_USER）</span>
